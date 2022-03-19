@@ -30,37 +30,45 @@
 #   sudo ./tt-manjaro-install.sh
 #
 # You will be prompted during the install a number of times.
+#
+# Thunderbird email client will be installed.
+# To setup work email use these settings:
+#   imap.mail.eu-west-1.awsapps.com
+#   443
+#   smtp.mail.eu-west-1.awsapps.com
+#   465
 
 #!/usr/bin/env bash
 set -euxo pipefail
 
-# System update.
+setupLn () {
+  echo
+  echo
+  echo "⚙️ TontineTrust setting up:"
+  echo "⚙️   $1" 
+}
+
+################################################
+##### SYSTEM PACKAGES AND HARDWARE-RELATED #####
+################################################
+
+setupLn 'system packages'
 pamac update --force-refresh --aur --devel
 
-# Bluetooth.
+setupLn 'bluetooth'
 pamac install --no-confirm bluez bluez-utils
 modprobe btusb
 systemctl start bluetooth  # Start now.
 systemctl enable bluetooth # Start on login.
 
-# git.
-pamac install --no-confirm git
-if [[ $(git config user.name) ]]; then
-  echo "git username already set"
-else
-  read -p "Enter git username: " GIT_USERNAME
-  git config --global user.name "$GIT_USERNAME"
-fi
-if [[ $(git config user.name) ]]; then
-  echo "git username already set"
-else
-  read -p "Enter git email: " GIT_EMAIL
-  git config --global user.email "$GIT_EMAIL"
-fi
-# Authenticate with GitHub with an SSH key.
-#  https://docs.github.com/es/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+########################
+##### APPLICATIONS #####
+########################
 
-# Emacs.
+setupLn 'Bitwarden'
+pamac install --no-confirm bitwarden
+
+setupLn 'emacs'
 read -p "Install emacs [y/n]? " -n 1 -r
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]
@@ -70,34 +78,57 @@ then
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]
   then
-    pamac install --no-confirm emacs
-    read -p "Install Doom emacs [y/n]? " -n 1 -r
+    pamac install --no-confirm fd findutils ripgrep # Doom dependencies.
+    git clone --depth 1 https://github.com/hlissner/doom-emacs ~/.emacs.d || true
+    yes | ~/.emacs.d/bin/doom install
+    # TODO Doom config files.
   fi
 fi
 
-# vscode.
-
-# Nix.
-pamac install --no-confirm nix
-
-# Cachix.
-
-# tontine-frontend.
-
-# robo-actuary.
-
-# Authenticate with GitHub with an SSH key.
+setupLn 'git'
+pamac install --no-confirm git
+if [[ $(git config user.name) ]]; then
+  echo 'git username already set'
+  echo 'to change username:'
+  echo '  git config --global user.name YOUR_USERNAME'
+else
+  read -p 'Enter git username: ' GIT_USERNAME
+  git config --global user.name "$GIT_USERNAME"
+fi
+if [[ $(git config user.name) ]]; then
+  echo 'git username already set'
+  echo 'to change email:'
+  echo '  git config --global user.email YOUR_EMAIL'
+else
+  read -p 'Enter git email: ' GIT_EMAIL
+  git config --global user.email "$GIT_EMAIL"
+fi
+# TODO Authenticate with GitHub with an SSH key.
 #  https://docs.github.com/es/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
 
-# Setup work email in Thunderbird. Use these settings:
-#  imap.mail.eu-west-1.awsapps.com
-#  443
-#  smtp.mail.eu-west-1.awsapps.com
-#  465
+setupLn 'TODO kitty terminal'
 
-# Bitwarden.
-pamac install --no-confirm bitwarden
-echo
-echo "Please keep work-related passwords in a password manager."
-echo "TontineTrust recommends Bitwarden."
-echo
+setupLn 'Nix'
+pamac install --no-confirm nix
+
+setupLn 'Cachix'
+
+setupLn 'Thunderbird'
+
+setupLn 'TODO Visual Studio Code'
+
+####################################
+##### ADDITIONAL CONFIGURATION #####
+####################################
+
+# https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4665
+
+##############################
+##### TONTINETRUST REPOS #####
+##############################
+
+setupLn 'tontine-frontend'
+git clone git@github.com:tontinetrust/tontine-frontend ~/tontine-frontend || true
+
+setupLn 'robo-actuary'
+git clone git@github.com:tontinetrust/robo-actuary ~/robo-actuary || true
