@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Manjaro install instructions for TontineTrust software development.
+# Manjaro install script for TontineTrust software development.
 #
 # Download a Manjaro ISO. Minimal edition of Manjaro Sway is recommended:
 #   https://manjaro-sway.download/
@@ -25,17 +25,10 @@ set -euo pipefail
 #
 # Read this install script and check you are happy with it.
 # Note that this script is interactive, it requires your input.
-# TODO add --no-confirm flag
+# TODO add --no-confirm flag to this script
 #
-# Download this install script:
-#   wget -O tt-manjaro-install.sh https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh
-#
-# Make this script executable:
-#   chmod +x ./tt-manjaro-install.sh
-# TODO upload executable version of this script.
-#
-# Run this script as root:
-#   sudo ./tt-manjaro-install.sh
+# Run this install script:
+#   bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh)'
 #
 # Thunderbird email client will be installed.
 # To setup work email use these settings:
@@ -44,26 +37,31 @@ set -euo pipefail
 #   smtp.mail.eu-west-1.awsapps.com
 #   465
 
-DOOM_COMMIT="5e6689fe5e4307476e518441d99ecdd1baf3255e"
-HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
+DOOM_COMMIT='5e6689fe5e4307476e518441d99ecdd1baf3255e'
+# HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 KITTY_CONF_DIR="$HOME/.config/kitty"
 KITTY_CONF_PATH="$KITTY_CONF_DIR/kitty.conf"
-REPO_ROOT="https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main"
-SSH_KEY_ALGO="ed25519"
+REPO_ROOT='https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main'
+SSH_KEY_ALGO='ed25519'
 SSH_KEY_DIR="$HOME/.ssh"
 SSH_KEY_PATH="$SSH_KEY_DIR/id_$SSH_KEY_ALGO"
 SWAY_CONF_PATH="$HOME/.config/sway/config.d/tt.conf"
 
+info() {
+  echo "ℹ️  $1"
+}
+
+longStep() {
+  echo "⚠️  '$1' takes a long time!"
+}
+
 newStep() {
-  echo
-  echo "⚙️  TontineTrust install step:"
-  echo "⚙️    $1"
-  echo
+  echo "⚙️  Install step: $1"
 }
 
 userQ() {
-  echo
   read -p "⚙️  $1 [y/n]? " -n 1 -r
+  echo
 }
 
 newStepUserQ() {
@@ -71,119 +69,139 @@ newStepUserQ() {
   userQ "$1"
 }
 
-takesLong() {
-  echo "WARNING: The next step takes a long time!"
+prompt() {
+  read -p "⚙️  $1 " -n 1 -r
+}
+
+skipStep() {
+  echo "⚙️  Skipping '$1' because $2"
 }
 
 ################################################
 ##### SYSTEM PACKAGES AND HARDWARE-RELATED #####
 ################################################
 
-newStep 'Update packages'
-echo 'This step can be skipped if you have previously run'
-echo 'this script or if you have already manually updated'
-echo 'Manjaro. OTHERWISE IT IS REQUIRED.'
-echo
-read -p 'Update packages [y/n]? ' -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
+STEP='Update packages'
+newStep "$STEP"
+info 'This step can be skipped if you have previously run'
+info 'this script or if you have already manually updated'
+info 'Manjaro. OTHERWISE IT IS REQUIRED.'
+userQ "$STEP"
+if [[ $REPLY =~ ^[Yy]$ ]]; then
   pamac update --force-refresh --aur --devel
 fi
 
 newStep 'Install bluetooth'
 pamac install --no-confirm blueman bluez bluez-utils
 modprobe btusb
-systemctl start bluetooth  # Start now.
-systemctl enable bluetooth # Start on login.
+if [[ $(systemctl is-active bluetooth) ]]; then
+  info 'Bluetooth service already running'
+else
+  info 'Starting bluetooth service'
+  systemctl start bluetooth # Start now.
+fi
+if [[ $(systemctl is-enabled bluetooth) ]]; then
+  info 'Bluetooth already enabled on login'
+else
+  info 'Enabling bluetooth on login'
+  systemctl enable bluetooth # Start on login.
+fi
+
 
 ########################
 ##### APPLICATIONS #####
 ########################
 
-newStepUserQ "Install Bitwarden"
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
+STEP='Install Bitwarden'
+newStep "$STEP"
+if [[ ! $(pamac list | grep bitwarden) ]]; then
   pamac install --no-confirm bitwarden
+else
+  skipStep "$STEP" 'Bitwarden is already installed'
 fi
 
-newStep "Install emacs"
-read -p "Install emacs [y/n]? " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
-  pamac install --no-confirm emacs
-  echo
-  takesLong
-  read -p "Install Doom emacs [y/n]? " -n 1 -r
-  echo
-  if [[ $REPLY =~ ^[Yy]$ ]]
-  then
+STEP='Install Emacs'
+newStep "$STEP"
+if [[ ! $(pamac list | grep emacs) ]]; then
+  userQ "$STEP"
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    pamac install --no-confirm emacs
+  fi
+else
+  skipStep "$STEP" 'Emacs already installed'
+fi
+
+STEP='Install Doom emacs'
+newStep "$STEP"
+if [[ ! $(pamac list | grep emacs) ]]; then
+  skipStep "$STEP" 'Requires Emacs to be installed'
+else
+  longStep "$STEP"
+  userQ "$STEP"
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
     pamac install --no-confirm fd findutils ripgrep
-    git clone --depth 1 https://github.com/hlissner/doom-emacs "HOME/.emacs.d" || true
+    git clone --depth 1 https://github.com/hlissner/doom-emacs "$HOME/.emacs.d" || true
     (cd "$HOME/.emacs.d" && git pull && git checkout "$DOOM_COMMIT")
-    su "$SUDO_USER" -c "$HOME/.emacs.d/bin/doom -y install"
-    echo
-    takesLong
-    read -p "Use TontineTrust Doom emacs config [y/n]? " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]]
-    then
+    "$HOME/.emacs.d/bin/doom" -y install
+    STEP='Use TontineTrust Doom Emacs config'
+    longStep "$STEP"
+    userQ "$STEP"
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
       pamac install --no-confirm direnv pandoc shellcheck
       if ! command -v nixfmt &> /dev/null
       then
         pamac build --no-confirm nixfmt
+      else
+        info "nixfmt already installed"
       fi
-      DOOM_DIR=~/.doom.d
+      DOOM_DIR="$HOME/.doom.d"
       wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/config.el"
       wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/init.el"
       wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/packages.el"
-      su "$SUDO_USER" -c "$HOME/.emacs.d/bin/doom -y sync"
-      su "$SUDO_USER" -c "$HOME/.emacs.d/bin/doom -y doctor"
+      "$HOME/.emacs.d/bin/doom" -y sync
+      "$HOME/.emacs.d/bin/doom" -y doctor
+      prompt "Read the doctor's diagnosis above then press any key to continue"
     fi
   fi
 fi
 
-newStep 'git'
+STEP='git setup'
+newStep "$STEP"
 pamac install --no-confirm git
 if [[ $(git config user.name) ]]; then
   GIT_USERNAME=$(git config user.name)
-  echo "git username already set to: $GIT_USERNAME"
-  echo "To update git username:"
-  echo "  git config --global user.name <new_username>"
+  info "git username already set to: $GIT_USERNAME"
+  info 'To update git username: git config --global user.name <username>'
 else
   read -p 'Enter git username: ' GIT_USERNAME
   git config --global user.name "$GIT_USERNAME"
 fi
 if [[ $(git config user.email) ]]; then
   GIT_EMAIL=$(git config user.email)
-  echo "git email already set to: $GIT_EMAIL"
-  echo "To update git email:"
-  echo "  git config --global user.email <new_email"
+  info "git email already set to: $GIT_EMAIL"
+  info 'To update git email: git config --global user.email <email>'
 else
   read -p 'Enter git email: ' GIT_EMAIL
   git config --global user.email "$GIT_EMAIL"
 fi
-if [ ! -f "$SSH_KEY_PATH" ]; then
-  su "$SUDO_USER" -c "mkdir -p $SSH_KEY_DIR || true"
-  su "$SUDO_USER" -c "echo $SSH_KEY_PATH | ssh-keygen -P '' -t $SSH_KEY_ALGO -C $GIT_EMAIL"
-  su "$SUDO_USER" -c 'eval \$(ssh-agent -s) && ssh-add'
-  echo
-  echo 'SSH PUBLIC KEY:'
+if [[ ! -f "$SSH_KEY_PATH" ]]; then
+  mkdir -p "$SSH_KEY_DIR" || true
+  info "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
+  eval $(ssh-agent -s) && ssh-add
+  echo 
+  info 'SSH PUBLIC KEY:'
   cat ~/.ssh/id_ed25519.pub
   echo
-  echo 'Select and copy the contents of the above public key'
-  echo 'and upload the key to GitHub. More information here:'
-  echo '  https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account'
-  echo 'key to GitHub.'
+  info 'Select and copy the contents of the above public key'
+  info 'and upload the key to GitHub. More information here:'
+  info '  https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account'
   echo
 fi
 
-newStep 'kitty terminal'
+newStep 'Install kitty terminal'
 pamac install --no-confirm kitty kitty-shell-integration
 userQ 'Use TontineTrust kitty config'
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
+if [[ $REPLY =~ ^[Yy]$ ]]; then
   mkdir -p "$KITTY_CONF_DIR" || true
   wget -O "$KITTY_CONF_PATH" "$REPO_ROOT/kitty/kitty.conf"
 fi
@@ -191,15 +209,20 @@ fi
 newStep 'lsd'
 pamac install --no-confirm lsd
 
-newStep 'Nix & Cachix'
-su "$SUDO_USER" -c 'sh <(curl -L https://nixos.org/nix/install) --no-daemon'
-nix-env -iA cachix -f https://cachix.org/api/v1/install
+STEP='Install nix & cachix'
+newStep "$STEP"
+if ! command -v nix &> /dev/null
+then
+  sh <(curl -L https://nixos.org/nix/install) --no-daemon
+  nix-env -iA cachix -f https://cachix.org/api/v1/install
+else
+  skipStep "$STEP" "nix already installed"
+fi
 
 newStep 'sway'
 pamac install --no-confirm swaylock wlogout
 userQ "Use TontineTrust sway config (TODO fix)"
-if [[ $REPLY =~ ^[Yy]$ ]]
-then
+if [[ $REPLY =~ ^[Yy]$ ]]; then
   wget -O "$SWAY_CONF_PATH" "$REPO_ROOT/sway/tt.conf"
 fi
 
@@ -222,35 +245,32 @@ pamac install --no-confirm code
 # TODO Fix zoom issue.
 # https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4665
 
+GTK_THEME_NAME='Dracula' # The theme in .bashrc must match this.
+GTK_THEME_PKG='dracula-gtk-theme'
+
 # GTK theme.
-# TODO don't build if already built.
-pamac build --no-confirm dracula-gtk-theme
 # https://wiki.manjaro.org/index.php/Set_all_Qt_app%27s_to_use_GTK%2B_font_%26_theme_settings
 pamac install --no-confirm qt5ct
+if [[ ! $(pamac list | grep dracula-gtk-theme) ]]; then
+  pamac build --no-confirm dracula-gtk-theme
+fi
 
-# TODO enable Fira Code.
 # GTK font.
-# pamac install --no-confirm woff2-fira-code
-# userQ "Use FiraCode font"
-# if [[ $REPLY =~ ^[Yy]$ ]]
-# then
-#   su "$SUDO_USER" -c "gsettings set org.gnome.desktop.interface font-name 'Fira Code 10'"
-#   su "$SUDO_USER" -c "gsettings set org.gnome.desktop.interface document-font-name 'Fira Code 10'"
-#   su "$SUDO_USER" -c "gsettings set org.gnome.desktop.interface monospace-font-name 'Fira Code 10'"
-#   su "$SUDE_USER" -c "gsettings set org.gnome.nautilus.desktop font 'Ubuntu 10'"
-# fi
+# TODO factor this install pattern out: install IFF not installed.
+if [[ ! $(pamac list | grep ttf-ubuntu-font-family) ]]; then
+  pamac install --no-confirm ttf-ubuntu-font-family
+fi
 
-# Bash config.
-# NOTE: Keep this at the bottom.
-wget -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
-source "$HOME/.bashrc"
+# NOTE: Keep this at the bottom of this file.
+newStep 'Bash config'
+userQ 'Use TontineTrust bash config (overwrites existing config)'
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  wget -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
+  source "$HOME/.bashrc"
+fi
 
 echo
-echo
-echo '🔥  Reload sway with:'
-echo '🔥    sway reload:'
-echo
-echo '🔥  Install our GitHub projects with:'
-echo  🔥    'bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
-echo
+info 'Remember to reload sway!'
+info 'Install TontineTrust GitHub projects with:'
+info '  bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
 echo
