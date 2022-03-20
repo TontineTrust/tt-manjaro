@@ -27,12 +27,11 @@ set -euo pipefail
 # Note that this script is interactive, it requires your input.
 # TODO add --no-confirm flag
 #
-# Run this install script.
-#   sudo bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh)
+# Download this install script:
+#   wget -O tt-manjaro-install.sh https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh
 #
-# Read and run this other script if you want to
-# clone our projects from GitHub and install them.
-#   sudo bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-install-projects.sh)
+# Run this install script as root:
+#   sudo ./tt-manjaro-install.sh
 #
 # Thunderbird email client will be installed.
 # To setup work email use these settings:
@@ -241,3 +240,8 @@ pamac install --no-confirm qt5ct
 # NOTE: Keep this at the bottom.
 wget -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
 source "$HOME/.bashrc"
+
+echo
+echo 'To install our GitHub repos run:'
+echo   'bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
+echo
