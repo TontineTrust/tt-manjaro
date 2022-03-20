@@ -16,8 +16,8 @@
         '("xelatex -shell-escape -interaction nonstopmode %f"
           "bibtex %b"
           "xelatex -shell-escape -interaction nonstopmode %f")
-      ;; user-full-name "jerbaroo"
-      ;; user-mail-address "jerbaroo@protonmail.com"
+      ;; user-full-name "USERNAME"
+      ;; user-mail-address "EMAIL"
       which-key-idle-delay 0.1
       zoom-size '(0.60 . 0.60)
       )
