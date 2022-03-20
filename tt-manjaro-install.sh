@@ -30,7 +30,11 @@ set -euo pipefail
 # Download this install script:
 #   wget -O tt-manjaro-install.sh https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh
 #
-# Run this install script as root:
+# Make this script executable:
+#   chmod +x ./tt-manjaro-install.sh
+# TODO upload executable version of this script.
+#
+# Run this script as root:
 #   sudo ./tt-manjaro-install.sh
 #
 # Thunderbird email client will be installed.
