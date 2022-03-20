@@ -37,7 +37,6 @@ set -euo pipefail
 #   smtp.mail.eu-west-1.awsapps.com
 #   465
 
-DOOM_COMMIT='5e6689fe5e4307476e518441d99ecdd1baf3255e'
 # HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 KITTY_CONF_DIR="$HOME/.config/kitty"
 KITTY_CONF_PATH="$KITTY_CONF_DIR/kitty.conf"
@@ -141,7 +140,6 @@ else
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     pamac install --no-confirm fd findutils ripgrep
     git clone --depth 1 https://github.com/hlissner/doom-emacs "$HOME/.emacs.d" || true
-    (cd "$HOME/.emacs.d" && git pull && git checkout "$DOOM_COMMIT")
     "$HOME/.emacs.d/bin/doom" -y install
     STEP='Use TontineTrust Doom Emacs config'
     longStep "$STEP"
