@@ -246,6 +246,11 @@ wget -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
 source "$HOME/.bashrc"
 
 echo
-echo 'To install our GitHub repos run:'
-echo   'bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
+echo
+echo '🔥  Reload sway with:'
+echo '🔥    sway reload:'
+echo
+echo '🔥  Install our GitHub projects with:'
+echo  🔥    'bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
+echo
 echo
