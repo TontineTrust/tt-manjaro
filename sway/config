@@ -115,6 +115,7 @@ set $term    kitty
 
 ### Key bindings
     bindsym $mod+x exec $lock
+    bindsym $mod+Shift+x exec logout
     bindsym $mod+w exec $browser
     bindsym $mod+e exec $editor
     bindsym $mod+Return exec $term
@@ -127,8 +128,6 @@ set $term    kitty
     # Change normal to inverse to use left mouse button for resizing and right
     # mouse button for dragging.
     floating_modifier $mod normal
-    # Exit sway.
-    bindsym $mod+Shift+l exec logout
 #
 # Moving around:
 #
