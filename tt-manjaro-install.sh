@@ -281,9 +281,6 @@ pamac install --no-confirm code
 # TODO Fix zoom issue.
 # https://gitlab.gnome.org/GNOME/gnome-shell/-/issues/4665
 
-GTK_THEME_NAME='Dracula' # The theme in .bashrc must match this.
-GTK_THEME_PKG='dracula-gtk-theme'
-
 # GTK theme.
 # https://wiki.manjaro.org/index.php/Set_all_Qt_app%27s_to_use_GTK%2B_font_%26_theme_settings
 pamac install --no-confirm qt5ct
