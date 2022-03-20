@@ -23,7 +23,7 @@ newStep 'robo-actuary'
 BACKEND_DIR="$HOME/robo-actuary"
 git clone git@github.com:tontinetrust/robo-actuary "$BACKEND_DIR" || true
 cd "$BACKEND_DIR"
-if [ ! -z "$(git status --porcelain)" ]
+if [ -z "$(git status --porcelain)" ]
 then
   echo 'use_nix' >> '.envrc'
   direnv allow
