@@ -153,3 +153,5 @@ gsettings set org.gnome.desktop.interface font-name "$FONT"
 gsettings set org.gnome.desktop.interface document-font-name "$FONT"
 gsettings set org.gnome.desktop.interface monospace-font-name "$FONT"
 # gsettings set org.gnome.nautilus.desktop font "$FONT"
+
+source "$HOME/.nix-profile/etc/profile.d/nix.sh"
