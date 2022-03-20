@@ -106,7 +106,6 @@ else
   systemctl enable bluetooth # Start on login.
 fi
 
-
 ########################
 ##### APPLICATIONS #####
 ########################
@@ -323,7 +322,7 @@ if [ -z "$(git status --porcelain)" ]
 then
   echo 'use_nix' >> '.envrc'
   direnv allow
-  nix-build
+  nix-shell --run "echo 'built robo-actuary'"
 fi
 cd -
 
