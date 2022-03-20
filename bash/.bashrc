@@ -140,11 +140,16 @@ ex ()
 ##### User configuration starts here. #####
 ###########################################
 
+# Aliases.
+alias lsd="ls"
+
 # GTK theme.
 # https://wiki.manjaro.org/index.php/Set_all_Qt_app%27s_to_use_GTK%2B_font_%26_theme_settings
 export QT_QPA_PLATFORMTHEME="qt5ct"
-su "$SUDO_USER" -c 'gsettings set org.gnome.desktop.interface gtk-theme "Dracula"'
-su "$SUDO_USER" -c gsettings set org.gnome.desktop.wm.preferences theme "Dracula"
-
-# Aliases.
-alias lsd="ls"
+gsettings set org.gnome.desktop.interface gtk-theme "Dracula"
+gsettings set org.gnome.desktop.wm.preferences theme "Dracula"
+FONT='Ubuntu 12'
+gsettings set org.gnome.desktop.interface font-name "$FONT"
+gsettings set org.gnome.desktop.interface document-font-name "$FONT"
+gsettings set org.gnome.desktop.interface monospace-font-name "$FONT"
+# gsettings set org.gnome.nautilus.desktop font "$FONT"
