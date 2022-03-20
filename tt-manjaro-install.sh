@@ -28,7 +28,7 @@ set -euo pipefail
 # TODO add --all flag to install all apps with TT configs 
 #
 # Run this install script:
-#   bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh)'
+#   bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh)
 #
 # Thunderbird email client will be installed.
 # To setup work email use these settings:
