@@ -166,7 +166,7 @@ fi
 sshKeySetup() {
   rm "$SSH_KEY_PATH*"
   mkdir -p "$SSH_KEY_DIR" || true
-  info "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
+  echo "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
   eval $(ssh-agent -s) && ssh-add
   echo 
   info 'SSH PUBLIC KEY:'
