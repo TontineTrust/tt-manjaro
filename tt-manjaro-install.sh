@@ -167,9 +167,9 @@ fi
 if [ ! -f "$SSH_KEY_PATH" ]; then
   su "$SUDO_USER" -c "mkdir -p $SSH_KEY_DIR || true"
   su "$SUDO_USER" -c "echo $SSH_KEY_PATH | ssh-keygen -P '' -t $SSH_KEY_ALGO -C $GIT_EMAIL"
-  su "$SUDO_USER" -c "eval \$(ssh-agent -s) && ssh-add"
+  su "$SUDO_USER" -c 'eval \$(ssh-agent -s) && ssh-add'
   echo
-  echo "SSH PUBLIC KEY:"
+  echo 'SSH PUBLIC KEY:'
   cat ~/.ssh/id_ed25519.pub
   echo
   echo 'Select and copy the contents of the above public key'
@@ -181,7 +181,7 @@ fi
 
 newStep 'kitty terminal'
 pamac install --no-confirm kitty kitty-shell-integration
-userQ "Use TontineTrust kitty config"
+userQ 'Use TontineTrust kitty config'
 if [[ $REPLY =~ ^[Yy]$ ]]
 then
   mkdir -p "$KITTY_CONF_DIR" || true
@@ -192,7 +192,7 @@ newStep 'lsd'
 pamac install --no-confirm lsd
 
 newStep 'Nix & Cachix'
-pamac install --no-confirm nix
+su "$SUDO_USER" -c 'sh <(curl -L https://nixos.org/nix/install) --no-daemon'
 nix-env -iA cachix -f https://cachix.org/api/v1/install
 
 newStep 'sway'
