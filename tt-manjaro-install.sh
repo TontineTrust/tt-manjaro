@@ -25,7 +25,7 @@ set -euo pipefail
 #
 # Read this install script and check you are happy with it.
 # Note that this script is interactive, it requires your input.
-# TODO add --no-confirm flag to this script
+# TODO add --all flag to install all apps with TT configs 
 #
 # Run this install script:
 #   bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/tt-manjaro-install.sh)'
@@ -155,15 +155,31 @@ else
         info "nixfmt already installed"
       fi
       DOOM_DIR="$HOME/.doom.d"
-      wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/config.el"
-      wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/init.el"
-      wget -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/packages.el"
+      wget --no-cache -O "$DOOM_DIR/config.el" "$REPO_ROOT/doom/config.el"
+      wget --no-cache -O "$DOOM_DIR/init.el" "$REPO_ROOT/doom/init.el"
+      wget --no-cache -O "$DOOM_DIR/packages.el" "$REPO_ROOT/doom/packages.el"
       "$HOME/.emacs.d/bin/doom" -y sync
       "$HOME/.emacs.d/bin/doom" -y doctor
       prompt "Read the doctor's diagnosis above then press any key to continue"
     fi
   fi
 fi
+
+sshKeySetup() {
+  rm "$SSH_KEY_PATH*"
+  mkdir -p "$SSH_KEY_DIR" || true
+  info "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
+  eval $(ssh-agent -s) && ssh-add
+  echo 
+  info 'SSH PUBLIC KEY:'
+  cat ~/.ssh/id_ed25519.pub
+  echo
+  info 'Select and copy the contents of the above public key'
+  info 'and upload the key to GitHub. More information here:'
+  info '  https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account'
+  prompt "Waiting for you to upload that public key... press any key when done"
+  ssh -T git@github.com
+}
 
 STEP='git setup'
 newStep "$STEP"
@@ -185,17 +201,12 @@ else
   git config --global user.email "$GIT_EMAIL"
 fi
 if [[ ! -f "$SSH_KEY_PATH" ]]; then
-  mkdir -p "$SSH_KEY_DIR" || true
-  info "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
-  eval $(ssh-agent -s) && ssh-add
-  echo 
-  info 'SSH PUBLIC KEY:'
-  cat ~/.ssh/id_ed25519.pub
-  echo
-  info 'Select and copy the contents of the above public key'
-  info 'and upload the key to GitHub. More information here:'
-  info '  https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account'
-  echo
+  sshKeySetup
+else
+  userQ 'Generate new GitHub SSH key (overwrite any existing key)'
+  if [[ $REPLY =~ ^[Yy]$ ]]; then
+    sshKeySetup
+  fi
 fi
 
 newStep 'Install kitty terminal'
@@ -203,7 +214,7 @@ pamac install --no-confirm kitty kitty-shell-integration
 userQ 'Use TontineTrust kitty config'
 if [[ $REPLY =~ ^[Yy]$ ]]; then
   mkdir -p "$KITTY_CONF_DIR" || true
-  wget -O "$KITTY_CONF_PATH" "$REPO_ROOT/kitty/kitty.conf"
+  wget --no-cache -O "$KITTY_CONF_PATH" "$REPO_ROOT/kitty/kitty.conf"
 fi
 
 newStep 'lsd'
@@ -215,15 +226,40 @@ if ! command -v nix &> /dev/null
 then
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
   nix-env -iA cachix -f https://cachix.org/api/v1/install
+  echo
+  cat << EOF
+keep-derivations    = true
+keep-outputs        = true
+substituters        = https://hydra.iohk.io/ https://iohk.cachix.org https://cache.nixos.org/
+trusted-public-keys = hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ= iohk.cachix.org-1:DpRUyj7h7V830dp/i6Nti+NEO2/nhblbov/8MW7Rqoo= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+EOF
+  info 'Make sure that /etc/nix/nix.conf contains the above lines'
+  prompt 'Waiting for you to update /etc/nix/nix.conf... press any key when done'
+  info 'You need a read token to use cachix, you can find it here:'
+  info '  https://github.com/TontineTrust/secrets/blob/master/cachix-read-token'
+  info 'Once you have a token run: '
+  info '  cachix authtoken <TOKEN>'
+  prompt 'Waiting for you to add a token to cachix... press any key when done'
+  cachix use tontinetrust-roboactuary
 else
   skipStep "$STEP" "nix already installed"
+fi
+
+
+STEP='Install Sublime Text'
+newStep "$STEP"
+PKG_NAME='sublime-text-4'
+if [[ ! $(pamac list | grep "$PKG_NAME") ]]; then
+  pamac build --no-confirm "$PKG_NAME"
+else
+  skipStep "$STEP" 'Sublime Text already installed'
 fi
 
 newStep 'sway'
 pamac install --no-confirm swaylock wlogout
 userQ "Use TontineTrust sway config (TODO fix)"
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  wget -O "$SWAY_CONF_PATH" "$REPO_ROOT/sway/tt.conf"
+  wget --no-cache -O "$SWAY_CONF_PATH" "$REPO_ROOT/sway/tt.conf"
 fi
 
 newStep 'Thunderbird'
@@ -265,12 +301,41 @@ fi
 newStep 'Bash config'
 userQ 'Use TontineTrust bash config (overwrites existing config)'
 if [[ $REPLY =~ ^[Yy]$ ]]; then
-  wget -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
+  wget --no-cache -O "$HOME/.bashrc" "$REPO_ROOT/bash/.bashrc"
   source "$HOME/.bashrc"
 fi
 
+#########################
+##### PROJECT SETUP #####
+#########################
+
+newStep 'Install tontine-frontend'
+pamac install --no-confirm nodejs npm
+FRONTEND_DIR="$HOME/tontine-frontend"
+git clone git@github.com:tontinetrust/tontine-frontend $FRONTEND_DIR || true
+cd "$FRONTEND_DIR"
+if [ -z "$(git status --porcelain)" ]
+then
+  npm i
+fi
+cd -
+
+newStep 'Install robo-actuary'
+BACKEND_DIR="$HOME/robo-actuary"
+git clone git@github.com:tontinetrust/robo-actuary "$BACKEND_DIR" || true
+cd "$BACKEND_DIR"
+if [ -z "$(git status --porcelain)" ]
+then
+  echo 'use_nix' >> '.envrc'
+  direnv allow
+  nix-build
+fi
+cd -
+
+#########################
+##### FINAL MESSAGE #####
+#########################
+
 echo
 info 'Remember to reload sway!'
-info 'Install TontineTrust GitHub projects with:'
-info '  bash <(curl -s https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main/install-projects.sh)'
 echo
