@@ -1,10 +1,10 @@
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
 (setq display-line-numbers-type 'relative
-      doom-font (font-spec :family "Iosevka" :size 20)
+      doom-font (font-spec :family "FiraCode" :size 18)
       doom-theme 'doom-dracula
       doom-themes-treemacs-theme "doom-colors"
-      doom-variable-pitch-font (font-spec :family "Iosevka" :size 20)
+      doom-variable-pitch-font (font-spec :family "FiraCode" :size 18)
       lsp-enable-file-watchers nil
       lsp-haskell-formatting-provider "brittany"
       lsp-haskell-server-path "haskell-language-server"
@@ -16,8 +16,8 @@
         '("xelatex -shell-escape -interaction nonstopmode %f"
           "bibtex %b"
           "xelatex -shell-escape -interaction nonstopmode %f")
-      user-full-name "jerbaroo"
-      user-mail-address "jerbaroo@protonmail.com"
+      ;; user-full-name "jerbaroo"
+      ;; user-mail-address "jerbaroo@protonmail.com"
       which-key-idle-delay 0.1
       zoom-size '(0.60 . 0.60)
       )
