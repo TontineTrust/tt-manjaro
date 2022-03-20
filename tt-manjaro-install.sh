@@ -332,5 +332,5 @@ cd -
 #########################
 
 echo
-info 'Remember to reload sway!'
+info 'Now reboot!'
 echo
