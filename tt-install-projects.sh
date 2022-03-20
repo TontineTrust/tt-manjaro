@@ -11,7 +11,7 @@ newStep() {
 newStep 'tontine-frontend'
 pamac install --no-confirm nodejs
 FRONTEND_DIR="$HOME/tontine-frontend"
-su "$SUDO_USER" -c "git clone git@github.com:tontinetrust/tontine-frontend $FRONTEND_DIR || true"
+git clone git@github.com:tontinetrust/tontine-frontend $FRONTEND_DIR || true
 cd "$FRONTEND_DIR"
 if [ ! -z "$(git status --porcelain)" ]
 then
