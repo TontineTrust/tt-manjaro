@@ -1,6 +1,7 @@
 #
 # Default Manjaro Sway ~/.bashrc on March 19 2022.
 #
+# TontineTrust specific code at the bottom.
 
 [[ $- != *i* ]] && return
 
