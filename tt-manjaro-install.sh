@@ -37,7 +37,6 @@ set -euo pipefail
 #   smtp.mail.eu-west-1.awsapps.com
 #   465
 
-# HOME=$(getent passwd $SUDO_USER | cut -d: -f6)
 KITTY_CONF_DIR="$HOME/.config/kitty"
 KITTY_CONF_PATH="$KITTY_CONF_DIR/kitty.conf"
 REPO_ROOT='https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main'
@@ -242,7 +241,6 @@ else
   skipStep "$STEP" "nix already installed"
 fi
 
-
 STEP='Install Sublime Text'
 newStep "$STEP"
 PKG_NAME='sublime-text-4'
@@ -280,6 +278,9 @@ pamac install --no-confirm code
 pamac install --no-confirm qt5ct
 if [[ ! $(pamac list | grep dracula-gtk-theme) ]]; then
   pamac build --no-confirm dracula-gtk-theme
+fi
+if [[ ! $(pamac list | grep woff2-fira-code) ]]; then
+  pamac build --no-confirm woff2-fira-code
 fi
 
 # GTK font.
