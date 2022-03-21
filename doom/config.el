@@ -1,10 +1,10 @@
 ;;; $DOOMDIR/config.el -*- lexical-binding: t; -*-
 
 (setq display-line-numbers-type 'relative
-      doom-font (font-spec :family "FiraCode" :size 18)
+      doom-font (font-spec :family "Fira Code" :size 16)
       doom-theme 'doom-dracula
       doom-themes-treemacs-theme "doom-colors"
-      doom-variable-pitch-font (font-spec :family "FiraCode" :size 18)
+      doom-variable-pitch-font (font-spec :family "Fira Code" :size 16)
       lsp-enable-file-watchers nil
       lsp-haskell-formatting-provider "brittany"
       lsp-haskell-server-path "haskell-language-server"
