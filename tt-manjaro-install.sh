@@ -328,5 +328,6 @@ cd -
 #########################
 
 echo
-info 'Now reboot!'
+info 'You may need to logout and login again for some changes to take effect.'
+info 'Reboot now if running this script for the first time!'
 echo
