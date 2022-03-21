@@ -221,6 +221,7 @@ newStep "$STEP"
 if ! command -v nix &> /dev/null
 then
   sh <(curl -L https://nixos.org/nix/install) --no-daemon
+  source "$HOME/.nix-profile/etc/profile.d/nix.sh"
   nix-env -iA cachix -f https://cachix.org/api/v1/install
   echo
   cat << EOF
@@ -280,7 +281,7 @@ if [[ ! $(pamac list | grep dracula-gtk-theme) ]]; then
   pamac build --no-confirm dracula-gtk-theme
 fi
 if [[ ! $(pamac list | grep woff2-fira-code) ]]; then
-  pamac build --no-confirm woff2-fira-code
+  pamac install --no-confirm woff2-fira-code
 fi
 
 # GTK font.
