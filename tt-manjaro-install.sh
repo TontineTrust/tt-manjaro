@@ -44,7 +44,7 @@ REPO_ROOT='https://raw.githubusercontent.com/tontinetrust/tt-manjaro/main'
 SSH_KEY_ALGO='ed25519'
 SSH_KEY_DIR="$HOME/.ssh"
 SSH_KEY_PATH="$SSH_KEY_DIR/id_$SSH_KEY_ALGO"
-SWAY_CONF_PATH="$HOME/.config/sway/config.d/tt.conf"
+SWAY_CONF_PATH="$HOME/.config/sway"
 
 info() {
   echo "ℹ️  $1"
@@ -254,10 +254,7 @@ fi
 
 newStep 'sway'
 pamac install --no-confirm swaylock wlogout
-userQ "Use TontineTrust sway config (TODO fix)"
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-  wget --no-cache -O "$SWAY_CONF_PATH" "$REPO_ROOT/sway/tt.conf"
-fi
+wget --no-cache -O "$SWAY_CONF_PATH/definitions.d/tt.conf" "$REPO_ROOT/sway/definitions.d/tt.conf"
 
 newStep 'Thunderbird'
 pamac install --no-confirm thunderbird
