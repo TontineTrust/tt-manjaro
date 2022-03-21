@@ -162,7 +162,7 @@ else
 fi
 
 sshKeySetup() {
-  rm "$SSH_KEY_PATH*"
+  rm "$SSH_KEY_PATH*" || true
   mkdir -p "$SSH_KEY_DIR" || true
   echo "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
   eval $(ssh-agent -s) && ssh-add
