@@ -1,0 +1,330 @@
+#!/usr/bin/env bash
+set -eo pipefail
+
+COMMAND="$1"
+KITTY_CONF_DIR="$HOME/.config/kitty"
+KITTY_CONF_PATH="$KITTY_CONF_DIR/kitty.conf"
+SSH_KEY_ALGO='ed25519'
+SSH_KEY_DIR="$HOME/.ssh"
+SSH_KEY_PATH="$SSH_KEY_DIR/id_$SSH_KEY_ALGO"
+TT_REMOTE='https://raw.githubusercontent.com/TontineTrust/tt-manjaro/main'
+
+# TODO:
+# - docker: setup docker including setting user permissions
+# - doom emacs: (emacs installed by install-apps)
+# - zoom
+
+help() {
+  cat <<EOF
+Usage: tt <COMMAND>
+
+Available commands:
+  install                    install & setup everything
+  install-direnv             install & setup direnv & nix-direnv
+  install-nix                install & setup nix & cachix
+  setup-bluetooth            enable bluetooth service and install helpers
+  setup-desktop              configure sway & GTK theme & font
+  setup-email                instructions to set work email
+  setup-git                  setup an SSH key for GitHub access
+  setup-tontine-frontend     setup the tontine-frontend repo
+  setup-robo-actuary         setup the robo-actuary repo
+  update-mirrors             update package mirrors
+  update-system              update system packages
+  update-tt                  update the 'tt' CLI
+EOF
+}
+
+if [[ $EUID == 0 ]]; then
+  echo "Don't run this script as root"
+  exit
+fi
+
+if [[ ! "$COMMAND" ]]; then
+  help
+  exit
+fi
+set -u
+
+#############################
+##### UTILITY FUNCTIONS #####
+#############################
+
+appendTextIfNotInFile () {
+  if textIsInFile "$1" "$2"
+  then
+    info "Text '$1' already in $2"
+  else
+    info "Appending Text '$1' to $2"
+    echo "$1" >> "$2"
+  fi
+}
+
+downloadOverwrite() {
+  info "Overwriting '$1' with '$2'"
+  curl -o "$1" --create-dirs "$2"
+}
+
+info() {
+  echo "ℹ️ $1"
+}
+
+textIsInFile() {
+  grep -qF "$1" "$2"
+}
+
+userQ() {
+  read -p "ℹ️ $1? " -n 1 -r
+  echo
+}
+
+################################
+##### WORK HORSE FUNCTIONS #####
+################################
+
+installApps() {
+  export NIXPKGS_ALLOW_UNFREE=1
+  # Fix for possible bug:
+  #   env NIX_PATH="REPEAT=/dev/null"
+  nix-env -iA \
+    nixpkgs.bitwarden \
+    nixpkgs.emacs \
+    nixpkgs.kitty \
+    nixpkgs.lsd \
+    nixpkgs.nodejs-16_x \
+    nixpkgs.vscode
+  appendTextIfNotInFile 'alias lsd="ls"' "$HOME/.zshrc"
+  mkdir -p "$KITTY_CONF_DIR" || true
+  wget --no-cache -O "$KITTY_CONF_PATH" "$TT_REMOTE/kitty/kitty.conf"
+}
+
+installCachix() {
+  # Install Cachix if not already installed.
+  if ! command -v cachix &> /dev/null
+  then
+    info 'Installing cachix'
+    nix-env -iA cachix -f https://cachix.org/api/v1/install
+  else
+    info 'Cachix is already installed'
+  fi
+  # Set Cachix auth token if necessary.
+  CACHE_NAME='tontinetrust-roboactuary'
+  if textIsInFile "$CACHE_NAME" "$HOME/.config/nix/netrc"
+  then
+    info "Cachix already setup to use $CACHE_NAME"
+  else
+    info 'https://github.com/TontineTrust/secrets/blob/master/cachix-read-token'
+    userQ 'Paste Cachix auth token (use link above)'
+    cachix authtoken "$REPLY"
+  fi
+  # Set cachix to use tontinetrust-roboactuary.
+  cachix use "$CACHE_NAME"
+}
+
+installDirenv() {
+  # Install direnv & nix-direnv if not already installed.
+  if ! command -v direnv &> /dev/null
+  then
+    info 'Installing direnv & nix-direnv'
+    nix-env -iA nixpkgs.direnv nixpkgs.nix-direnv
+  else
+    info 'direnv and nix-direnv are already installed'
+  fi
+  # Hook direnv into the ZSH shell.
+  ZSH_DIRENV_HOOK='eval "$(direnv hook zsh)"'
+  # The above line must come after "source .../nix.sh" in .zshrc. This should be
+  # true given that direnv is installed using nix (at least in this script), and
+  # given that the step to install nix makes the necessary changes to .zshrc.
+  appendTextIfNotInFile "$ZSH_DIRENV_HOOK" "$HOME/.zshrc"
+  # Add nix-direnv to .direnvrc.
+  LINE='source $HOME/.nix-profile/share/nix-direnv/direnvrc'
+  appendTextIfNotInFile "$LINE" "$HOME/.direnvrc"
+}
+
+installNix() {
+  # Install Nix if not already installed.
+  if ! command -v nix &> /dev/null
+  then
+    info 'Installing nix'
+    sh <(curl -L https://nixos.org/nix/install) --no-daemon
+  else
+    info 'Nix is already installed'
+  fi
+  # Source Nix commands in .zshrc.
+  info 'Sourcing nix in current shell'
+  SOURCE='source "$HOME/.nix-profile/etc/profile.d/nix.sh"'
+  eval "$SOURCE"
+  appendTextIfNotInFile "$SOURCE" "$HOME/.zshrc"
+  # Download TT's nix.conf.
+  downloadOverwrite "$HOME/.config/nix/nix.conf" "$TT_REMOTE/nix/nix.conf"
+}
+
+setupBluetooth() {
+  nix-env -iA nixpkgs.blueman nixpkgs.bluez nixpkgs.bluez-tools
+  modprobe btusb
+  if [[ $(systemctl is-active bluetooth) ]]; then
+    info 'Bluetooth service already running'
+  else
+    info 'Starting bluetooth service'
+    systemctl start bluetooth # Start now.
+  fi
+  if [[ $(systemctl is-enabled bluetooth) ]]; then
+    info 'Bluetooth already enabled on login'
+  else
+    info 'Enabling bluetooth on login'
+    systemctl enable bluetooth # Start on login.
+  fi
+}
+
+setupEmail() {
+  if ! command -v thunderbird &> /dev/null
+  then
+    info 'Installing Thunderbird'
+    nix-env -iA thunderbird
+  else
+    info 'Thunderbird is already installed'
+  fi
+  info 'Setup work email with these settings:'
+  info ' imap.mail.eu-west-1.awsapps.com'
+  info ' 443'
+  info ' smtp.mail.eu-west-1.awsapps.com'
+  info ' 465'
+}
+
+setupGit() {
+  # Set git username.
+  if [[ $(git config user.name) ]]; then
+    GIT_USERNAME=$(git config user.name)
+    info "git username already set to: $GIT_USERNAME"
+    info 'To update git username: git config --global user.name <username>'
+  else
+    read -p 'Enter git username: ' GIT_USERNAME
+    git config --global user.name "$GIT_USERNAME"
+  fi
+  # Set git email.
+  if [[ $(git config user.email) ]]; then
+    GIT_EMAIL=$(git config user.email)
+    info "git email already set to: $GIT_EMAIL"
+    info 'To update git email: git config --global user.email <email>'
+  else
+    read -p 'Enter git email: ' GIT_EMAIL
+    git config --global user.email "$GIT_EMAIL"
+  fi
+  # Generate an SSH key.
+  if [[ ! -f "$SSH_KEY_PATH" ]]; then
+    mkdir -p "$SSH_KEY_DIR" || true
+    echo "$SSH_KEY_PATH" | ssh-keygen -P '' -t "$SSH_KEY_ALGO" -C "$GIT_EMAIL"
+    eval $(ssh-agent -s) && ssh-add
+  else
+    info 'SSH key already exists, not overwriting'
+  fi
+  info 'SSH public key:'
+  echo
+  cat "$SSH_KEY_PATH.pub"
+  echo
+  info 'Upload the public key above to GitHub, more info here:'
+  info '  https://docs.github.com/en/authentication/connecting-to-github-with-ssh/adding-a-new-ssh-key-to-your-github-account'
+  info 'Then check that it worked: ssh -T git@github.com'
+}
+
+# The following applications are installed with 'pamac' instead of 'nix' because
+# they are closely tied to the operating system setup and perhaps have some
+# configuration steps that nix doesn't do. However that is simply an assumption
+# which may be incorrect. TODO: check if we can move these to Nix.
+setupDesktop() {
+  pamac install --no-confirm qt5ct
+  if [[ ! $(pamac list | grep dracula-gtk-theme) ]]; then
+    pamac build --no-confirm dracula-gtk-theme
+  fi
+  if [[ ! $(pamac list | grep woff2-fira-code) ]]; then
+    pamac install --no-confirm woff2-fira-code
+  fi
+  if [[ ! $(pamac list | grep ttf-ubuntu-font-family) ]]; then
+    pamac install --no-confirm ttf-ubuntu-font-family
+  fi
+  wget --no-cache -O "$HOME/.config/sway/definitions.d/tt.conf" "$TT_REMOTE/sway/definitions.d/tt.conf"
+}
+
+updateMirrors() {
+  sudo pacman-mirrors -f
+}
+
+updateSystem() {
+  pamac update --aur --devel
+}
+
+updateTT() {
+  TT_PATH="$HOME/.local/bin/tt"
+  downloadOverwrite "$TT_PATH" "$TT_REMOTE/tt"
+  chmod u+x "$TT_PATH"
+  appendTextIfNotInFile "export PATH=\$PATH:$HOME/.local/bin/tt" "$HOME/.zshrc"
+}
+
+################################
+##### COMMAND LINE PARSING #####
+################################
+
+case "$COMMAND" in
+
+  install)
+    updateTT
+    info 'About to update package mirrors'
+    updateMirrors
+    info 'About to update system packages'
+    updateSystem
+    setupBluetooth
+    installNix
+    installCachix
+    installDirenv
+    installApps
+    setupDesktop
+    setupGit
+    setupEmail
+    ;;
+
+  install-apps)
+    installApps
+    ;;
+
+  install-direnv)
+    installDirenv
+    ;;
+
+  install-nix)
+    installNix
+    installCachix
+    ;;
+
+  setup-bluetooth)
+    setupBluetooth
+    ;;
+
+  setup-desktop)
+    setupDesktop
+    ;;
+
+  setup-email)
+    setupEmail
+    ;;
+
+  setup-git)
+    setupGit
+    ;;
+
+  update-mirrors)
+    updateMirrors
+    ;;
+
+  update-system)
+    updateSystem
+    ;;
+
+  update-tt)
+    updateTT
+    ;;
+
+  *)
+    info "Unrecognized command '$COMMAND'"
+    echo
+    help
+    ;;
+esac
