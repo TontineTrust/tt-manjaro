@@ -1,13 +1,13 @@
 # Manjaro TontineTrust Flavour
 
 Installation consists of:
-1. Installing Manjaro
+1. Installing Manjaro Sway
 2. Installing `tt`
 3. Running `tt install`
 
-## Installing Manjaro
+## Installing Manjaro Sway
 
-Download a Manjaro ISO. Minimal edition of Manjaro Sway is recommended:
+Download a Manjaro Sway ISO. The minimal edition is recommended:
  [https://manjaro-sway.download/]()
 
 Burn the ISO to a USB:
